@@ -341,10 +341,37 @@ a:focus-visible,
   margin-bottom: 12px;
 }
 
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.btn-ghost-light {
+  background: transparent;
+  border-color: var(--paper);
+  color: var(--paper);
+}
+.btn-ghost-light:hover {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--blue);
+}
+.contact .btn-light:focus-visible,
+.contact .btn-ghost-light:focus-visible {
+  outline-color: var(--cream);
+}
+
 .foot {
   background: var(--ink);
   color: #bdbdbd;
   font-size: 15px;
+}
+.foot a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+.foot a:hover {
+  color: var(--paper);
 }
 .foot-row {
   display: flex;
