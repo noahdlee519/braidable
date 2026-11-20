@@ -310,8 +310,21 @@ a:focus-visible,
 .about h2 {
   margin-bottom: 0;
 }
+.about-side {
+  display: grid;
+  align-content: start;
+  gap: 32px;
+}
+.portrait {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: 16px;
+}
 .about-text {
   display: grid;
+  align-content: start;
   gap: 18px;
   max-width: 38em;
   font-size: 20px;
@@ -399,6 +412,12 @@ a:focus-visible,
   .about {
     grid-template-columns: 1fr;
     gap: 24px;
+  }
+  .about-side {
+    gap: 24px;
+  }
+  .portrait {
+    max-width: 240px;
   }
 }
 @media (max-width: 640px) {
