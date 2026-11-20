@@ -375,6 +375,7 @@ a:focus-visible,
 }
 
 .foot {
+  padding: 28px 0;
   background: var(--ink);
   color: #bdbdbd;
   font-size: 15px;
@@ -388,10 +389,18 @@ a:focus-visible,
 }
 .foot-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 26px;
-  padding-bottom: 26px;
+}
+.foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+.foot-links {
+  display: flex;
+  gap: 24px;
 }
 
 /* Smaller screens */
@@ -449,8 +458,18 @@ a:focus-visible,
   .steps {
     grid-template-columns: 1fr;
   }
+  .foot {
+    padding: 36px 0;
+  }
   .foot-row {
     flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .foot-legal {
+    flex-direction: column;
+  }
+  .foot-links a {
+    padding: 6px 0;
   }
 }
