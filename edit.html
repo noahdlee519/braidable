@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Edit braidable.ai</title>
+<link rel="icon" href="favicon.png?v=2" type="image/png" />
+<style>
+@font-face {
+  font-family: "Familjen Grotesk";
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/familjen-grotesk-latin-wght-normal.woff2") format("woff2");
+}
+:root {
+  --orange: #e68019;
+  --blue: #2a44d6;
+  --ink: #141414;
+  --muted: #5c5c5c;
+  --line: #e2e2e2;
+  --bg: #f6f5f1;
+  --paper: #ffffff;
+  --ok: #1d7a3e;
+  --bad: #b3261e;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.45 "Familjen Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font: inherit; color: inherit; }
+a { color: var(--blue); }
+
+/* Top bar */
+.bar {
+  position: sticky; top: 0; z-index: 3;
+  display: flex; align-items: center; gap: 16px;
+  height: 60px; padding: 0 20px;
+  background: var(--paper); border-bottom: 1px solid var(--line);
+}
+.bar h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.bar .status { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--bad); }
+.status.dirty { color: var(--orange); }
+.actions { display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 18px;
+  border: 2px solid var(--ink); border-radius: 999px;
+  background: var(--ink); color: var(--paper);
+  font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: var(--blue); border-color: var(--blue); }
+.btn:disabled { opacity: 0.4; cursor: default; background: var(--ink); border-color: var(--ink); }
+.btn-quiet { background: transparent; color: var(--ink); }
+.btn-quiet:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn-quiet:disabled { background: transparent; }
+.btn:focus-visible, input:focus-visible, textarea:focus-visible, .tab:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+/* Connect panel */
+.connect { max-width: 620px; margin: 48px auto; padding: 0 20px; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
+.connect h2 { margin: 0 0 10px; font-size: 26px; letter-spacing: -0.02em; }
+.connect p { margin: 0 0 14px; color: var(--muted); }
+.connect ol { margin: 0 0 20px; padding-left: 22px; }
+.connect li { margin-bottom: 6px; }
+.connect label { display: block; font-weight: 600; margin-bottom: 6px; }
+.connect .row { display: flex; gap: 10px; margin-top: 6px; }
+.connect input[type=password] { flex: 1; min-width: 0; }
+.check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-weight: 400 !important; color: var(--muted); }
+.err { color: var(--bad); margin-top: 12px; min-height: 1.4em; }
+
+input[type=text], input[type=password], textarea {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid #cfcfcf; border-radius: 8px; background: var(--paper);
+}
+textarea { resize: none; overflow: hidden; line-height: 1.45; min-height: 44px; display: block; }
+input:focus, textarea:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(42, 68, 214, 0.18); }
+
+/* Editor layout */
+.editor { display: grid; grid-template-columns: minmax(340px, 460px) 1fr; height: calc(100vh - 60px); }
+.fields { overflow-y: auto; padding: 20px 20px 80px; border-right: 1px solid var(--line); }
+.preview { position: relative; background: #d9d9d9; }
+.preview iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--paper); }
+.tabs { display: none; }
+
+.group { margin-bottom: 28px; }
+.group h2 {
+  margin: 0 0 12px; padding-bottom: 6px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.field { margin-bottom: 14px; padding: 10px; margin-left: -10px; margin-right: -10px; border-radius: 10px; }
+.field.active { background: #eef0fb; }
+.field.changed > .label::after { content: "edited"; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: #fdebd6; color: #8a4a06; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+.label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; }
+.sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sub span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+.hint { margin-top: 5px; font-size: 12px; color: var(--muted); }
+.intro { margin: 0 0 22px; font-size: 14px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .bar { height: auto; min-height: 60px; flex-wrap: wrap; padding: 10px 16px; gap: 8px 12px; }
+  .bar .status { order: 3; flex-basis: 100%; }
+  .editor { display: block; height: auto; }
+  .tabs { display: flex; gap: 6px; padding: 10px 16px 0; }
+  .tab { flex: 1; padding: 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-weight: 600; cursor: pointer; }
+  .tab[aria-selected=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .fields { border-right: 0; padding: 16px 16px 60px; overflow: visible; }
+  .preview { height: calc(100vh - 130px); }
+  .editor[data-view=edit] .preview, .editor[data-view=preview] .fields { display: none; }
+  .sub { grid-template-columns: 1fr; }
+}
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Edit braidable.ai</h1>
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+  <div class="actions" id="actions" hidden>
+    <button class="btn btn-quiet" id="discard" disabled>Discard</button>
+    <button class="btn" id="publish" disabled>Publish</button>
+  </div>
+</header>
+
+<section class="connect" id="connect" hidden>
+  <div class="card">
+    <h2>Connect to GitHub</h2>
+    <p>Publishing saves your changes to the site's GitHub repository, and the live site updates about a minute later. This page needs a GitHub token that can edit that one repository.</p>
+    <ol>
+      <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub's new token page</a> (fine-grained token).</li>
+      <li>Name it something like <em>braidable editor</em> and pick an expiration.</li>
+      <li>Under <strong>Repository access</strong>, choose <em>Only select repositories</em> and pick <strong>braidable</strong>.</li>
+      <li>Under <strong>Permissions → Repository permissions</strong>, set <strong>Contents</strong> to <em>Read and write</em>.</li>
+      <li>Generate the token, copy it, and paste it below.</li>
+    </ol>
+    <form id="connect-form">
+      <label for="token">GitHub token</label>
+      <div class="row">
+        <input type="password" id="token" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required />
+        <button class="btn" type="submit">Connect</button>
+      </div>
+      <label class="check"><input type="checkbox" id="remember" checked /> Remember on this device</label>
+      <div class="err" id="connect-err"></div>
+      <p style="margin:8px 0 0;font-size:13px">The token stays in this browser and is only ever sent to GitHub.</p>
+    </form>
+  </div>
+</section>
+
+<div class="editor" id="editor" data-view="edit" hidden>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-view="edit">Edit</button>
+    <button class="tab" role="tab" aria-selected="false" data-view="preview">Preview</button>
+  </div>
+  <div class="fields" id="fields">
+    <p class="intro">Click any text in the preview to jump to it, or edit the fields below. Nothing goes live until you press <strong>Publish</strong>. · <a href="/" target="_blank" rel="noopener">View live site</a> · <a href="#" id="disconnect">Disconnect</a></p>
+  </div>
+  <div class="preview"><iframe id="frame" title="Page preview"></iframe></div>
+</div>
+
+<script>
+(() => {
+  const OWNER = 'noahdlee519', REPO = 'braidable', BRANCH = 'main', FILE = 'index.html';
+  const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
+  const KEY = 'braidable-editor-token';
+
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $('status');
+  let token = null, sha = null, originalHtml = '', doc = null, fields = [], dirty = new Set();
+
+  function setStatus(text, kind = '') { statusEl.textContent = text; statusEl.className = 'status ' + kind; }
+
+  // ---------- token storage ----------
+  function readToken() { try { return localStorage.getItem(KEY) || sessionStorage.getItem(KEY); } catch { return null; } }
+  function saveToken(t, remember) {
+    try { (remember ? localStorage : sessionStorage).setItem(KEY, t); } catch {}
+  }
+  function clearToken() { try { localStorage.removeItem(KEY); sessionStorage.removeItem(KEY); } catch {} }
+
+  // ---------- GitHub ----------
+  function gh(url, opts = {}) {
+    return fetch(url, {
+      cache: 'no-store',
+      ...opts,
+      headers: { 'Accept': 'application/vnd.github+json', 'Authorization': `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28', ...(opts.headers || {}) },
+    });
+  }
+  const b64ToText = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), (c) => c.charCodeAt(0)));
+  function textToB64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+
+  async function load() {
+    setStatus('Loading the current page from GitHub…');
+    const res = await gh(`${API}?ref=${BRANCH}`);
+    if (res.status === 401) throw new Error("GitHub didn't accept that token. It may be mistyped or expired.");
+    if (res.status === 404) throw new Error(`That token can't see ${OWNER}/${REPO}. Check its repository access.`);
+    if (!res.ok) throw new Error(`GitHub returned an error (${res.status}).`);
+    const data = await res.json();
+    sha = data.sha;
+    originalHtml = b64ToText(data.content);
+    build(originalHtml);
+    setStatus('Up to date with the live version', 'ok');
+  }
+
+  async function publish() {
+    if (!dirty.size) return;
+    const btn = $('publish');
+    btn.disabled = true; $('discard').disabled = true;
+    setStatus('Publishing…');
+    try {
+      const html = serialize();
+      const res = await gh(API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Edit site text from the dashboard', content: textToB64(html), sha, branch: BRANCH }),
+      });
+      if (res.status === 409 || res.status === 422) {
+        throw new Error('The page was changed somewhere else since you opened this editor. Copy any edits you need, then reload this page.');
+      }
+      if (res.status === 403 || res.status === 401) throw new Error("This token isn't allowed to save. Check that Contents is set to Read and write.");
+      if (!res.ok) throw new Error(`GitHub returned an error (${res.status}).`);
+      const data = await res.json();
+      sha = data.content.sha;
+      originalHtml = html;
+      dirty.clear();
+      document.querySelectorAll('.field.changed').forEach((f) => f.classList.remove('changed'));
+      setStatus('Published. The live site updates in about a minute.', 'ok');
+    } catch (e) {
+      setStatus(e.message, 'bad');
+    } finally {
+      updateButtons();
+    }
+  }
+
+  // ---------- reading the page ----------
+  const TEXT_TAGS = new Set(['H1','H2','H3','H4','H5','H6','P','LI','SPAN','A','BUTTON','FIGCAPTION','LABEL','SMALL','STRONG','EM','DT','DD','BLOCKQUOTE','TD','TH','CITE']);
+
+  function isPlainLink(n) { return n.nodeType === 1 && n.tagName === 'A' && [...n.childNodes].every((c) => c.nodeType === 3); }
+  function isTextBlock(el) {
+    if (!TEXT_TAGS.has(el.tagName) || !el.textContent.trim()) return false;
+    for (const n of el.childNodes) {
+      if (n.nodeType === 3 || n.nodeType === 8) continue;
+      if (el.tagName !== 'A' && isPlainLink(n)) continue;
+      return false;
+    }
+    return true;
+  }
+  const squash = (s) => s.replace(/\s+/g, ' ').trim();
+
+  function groupName(el) {
+    const sec = el.closest('header, footer, section');
+    if (!sec) return 'Page';
+    if (sec.tagName === 'HEADER') return 'Top bar';
+    if (sec.tagName === 'FOOTER') return 'Footer';
+    const lab = sec.getAttribute('aria-labelledby');
+    const h = lab && sec.ownerDocument.getElementById(lab);
+    if (h) return squash(h.textContent);
+    if (sec.classList.contains('hero')) return 'Top of page';
+    return sec.id || 'Section';
+  }
+  function labelFor(el) {
+    switch (el.tagName) {
+      case 'H1': return 'Main headline';
+      case 'H2': return 'Section heading';
+      case 'H3': case 'H4': return 'Title';
+      case 'A': return el.classList.contains('btn') ? 'Button' : 'Link';
+      case 'IMG': return el.closest('header') ? 'Logo description (read aloud by screen readers)' : 'Photo description (read aloud by screen readers)';
+      case 'P': return el.classList.contains('lede') ? 'Intro paragraph' : 'Paragraph';
+      default: return 'Text';
+    }
+  }
+
+  function toMarkup(el) {
+    return squash([...el.childNodes].map((n) =>
+      n.nodeType === 3 ? n.textContent : n.nodeType === 1 ? `[${n.textContent}](${n.getAttribute('href') || ''})` : ''
+    ).join(''));
+  }
+  function fromMarkup(el, value, linkTemplates) {
+    const d = el.ownerDocument;
+    el.textContent = '';
+    const re = /\[([^\]]+)\]\(([^)\s]*)\)/g;
+    let last = 0, m;
+    while ((m = re.exec(value))) {
+      if (m.index > last) el.appendChild(d.createTextNode(value.slice(last, m.index)));
+      const a = d.createElement('a');
+      a.setAttribute('href', m[2]);
+      const tpl = linkTemplates.find((t) => t.href === m[2]);
+      if (tpl) tpl.attrs.forEach(([k, v]) => a.setAttribute(k, v));
+      else if (/^https?:|\.pdf$/i.test(m[2])) { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener'); }
+      a.textContent = m[1];
+      el.appendChild(a);
+      last = re.lastIndex;
+    }
+    if (last < value.length) el.appendChild(d.createTextNode(value.slice(last)));
+  }
+
+  // ---------- building the editor ----------
+  function build(html) {
+    doc = new DOMParser().parseFromString(html, 'text/html');
+    fields = [];
+    dirty.clear();
+    const container = $('fields');
+    container.querySelectorAll('.group').forEach((g) => g.remove());
+
+    let eid = 0;
+    for (const el of doc.body.querySelectorAll('*')) {
+      if (el.closest('svg') || el.closest('.skip')) continue;
+      if (el.parentElement && el.parentElement.closest('[data-eid]')) continue;
+      let kind = null;
+      if (el.tagName === 'IMG' && el.getAttribute('alt')) kind = 'alt';
+      else if (isTextBlock(el)) kind = el.tagName === 'A' ? 'link' : (el.querySelector('a') ? 'rich' : 'text');
+      if (!kind) continue;
+      el.setAttribute('data-eid', String(eid));
+      fields.push({ id: String(eid), kind, group: groupName(el), label: labelFor(el),
+        links: kind === 'rich' ? [...el.querySelectorAll('a')].map((a) => ({ href: a.getAttribute('href'), attrs: [...a.attributes].map((x) => [x.name, x.value]).filter(([k]) => k !== 'href') })) : null });
+      eid++;
+    }
+    const head = [
+      ['title', null, 'Browser tab title'],
+      ['meta[name="description"]', 'content', 'Description shown in Google results'],
+      ['meta[property="og:title"]', 'content', 'Title when the link is shared'],
+      ['meta[property="og:description"]', 'content', 'Description when the link is shared'],
+    ];
+    for (const [sel, attr, label] of head) {
+      const el = doc.head.querySelector(sel);
+      if (el) fields.push({ id: 'h' + sel, kind: 'head', group: 'Search and sharing', label, el, attr });
+    }
+
+    const groups = new Map();
+    for (const f of fields) {
+      if (!groups.has(f.group)) {
+        const g = document.createElement('section');
+        g.className = 'group';
+        g.innerHTML = '<h2></h2>';
+        g.firstChild.textContent = f.group;
+        container.appendChild(g);
+        groups.set(f.group, g);
+      }
+      groups.get(f.group).appendChild(renderField(f));
+    }
+    renderPreview();
+    requestAnimationFrame(() => document.querySelectorAll('#fields textarea').forEach(autosize));
+    updateButtons();
+  }
+
+  const docEl = (f) => doc.querySelector(`[data-eid="${f.id}"]`);
+  const frameEl = (f) => { const d = $('frame').contentDocument; return d && d.querySelector(`[data-eid="${f.id}"]`); };
+
+  function apply(f, fn) {
+    if (f.kind === 'head') { fn(f.el); }
+    else { fn(docEl(f)); const p = frameEl(f); if (p) fn(p); }
+    dirty.add(f.id);
+    document.querySelector(`.field[data-fid="${CSS.escape(f.id)}"]`)?.classList.add('changed');
+    setStatus('Unpublished changes', 'dirty');
+    updateButtons();
+  }
+
+  function textarea(value, onInput) {
+    const t = document.createElement('textarea');
+    t.rows = 1; t.value = value; t.spellcheck = true;
+    t.addEventListener('input', () => { autosize(t); onInput(t.value); });
+    return t;
+  }
+  function input(value, onInput) {
+    const i = document.createElement('input');
+    i.type = 'text'; i.value = value; i.spellcheck = false;
+    i.addEventListener('input', () => onInput(i.value));
+    return i;
+  }
+  function autosize(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }
+
+  function renderField(f) {
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    wrap.dataset.fid = f.id;
+    const lab = document.createElement('label');
+    lab.className = 'label';
+    lab.textContent = f.label;
+    wrap.appendChild(lab);
+    const el = f.kind === 'head' ? f.el : docEl(f);
+
+    if (f.kind === 'text') {
+      wrap.appendChild(textarea(squash(el.textContent), (v) => apply(f, (e) => { e.textContent = v; })));
+    } else if (f.kind === 'head') {
+      const val = f.attr ? el.getAttribute(f.attr) : el.textContent;
+      wrap.appendChild(textarea(squash(val || ''), (v) => apply(f, (e) => { f.attr ? e.setAttribute(f.attr, v) : (e.textContent = v); })));
+    } else if (f.kind === 'alt') {
+      wrap.appendChild(textarea(el.getAttribute('alt'), (v) => apply(f, (e) => e.setAttribute('alt', v))));
+    } else if (f.kind === 'rich') {
+      wrap.appendChild(textarea(toMarkup(el), (v) => apply(f, (e) => fromMarkup(e, v, f.links))));
+      const h = document.createElement('div');
+      h.className = 'hint';
+      h.textContent = 'Links are written as [link text](address).';
+      wrap.appendChild(h);
+    } else if (f.kind === 'link') {
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      const a = document.createElement('label'), b = document.createElement('label');
+      a.innerHTML = '<span>Text</span>'; b.innerHTML = '<span>Goes to</span>';
+      a.appendChild(input(squash(el.textContent), (v) => apply(f, (e) => { e.textContent = v; })));
+      b.appendChild(input(el.getAttribute('href') || '', (v) => apply(f, (e) => e.setAttribute('href', v))));
+      sub.append(a, b);
+      wrap.appendChild(sub);
+    }
+    wrap.querySelectorAll('textarea, input').forEach((c) => {
+      if (f.kind !== 'link') lab.htmlFor = c.id = 'f-' + f.id.replace(/[^\w-]/g, '_');
+      c.addEventListener('focus', () => highlight(f.id, true));
+    });
+    return wrap;
+  }
+
+  // ---------- preview ----------
+  const PREVIEW_CSS = `[data-eid]{cursor:text;transition:outline-color .15s}
+[data-eid]:hover{outline:2px dashed rgba(42,68,214,.55);outline-offset:4px}
+[data-eid].editing{outline:3px solid #2a44d6;outline-offset:4px}
+html{scroll-behavior:auto}`;
+
+  function renderPreview() {
+    const frame = $('frame');
+    const clone = doc.documentElement.cloneNode(true);
+    const style = doc.createElement('style');
+    style.textContent = PREVIEW_CSS;
+    clone.querySelector('head').appendChild(style);
+    clone.querySelectorAll('script').forEach((s) => s.remove());
+    frame.onload = () => {
+      const d = frame.contentDocument;
+      d.addEventListener('click', (e) => {
+        if (e.target.closest('a')) e.preventDefault();
+        const t = e.target.closest('[data-eid]');
+        if (t) focusField(t.dataset.eid);
+      });
+    };
+    frame.srcdoc = '<!doctype html>\n' + clone.outerHTML;
+  }
+
+  function highlight(id, scroll) {
+    document.querySelectorAll('.field.active').forEach((x) => x.classList.remove('active'));
+    document.querySelector(`.field[data-fid="${CSS.escape(id)}"]`)?.classList.add('active');
+    const d = $('frame').contentDocument;
+    if (!d) return;
+    d.querySelectorAll('.editing').forEach((x) => x.classList.remove('editing'));
+    const el = d.querySelector(`[data-eid="${CSS.escape(id)}"]`);
+    if (el) { el.classList.add('editing'); if (scroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  }
+  function focusField(id) {
+    const f = document.querySelector(`.field[data-fid="${CSS.escape(id)}"]`);
+    if (!f) return;
+    setView('edit');
+    f.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    f.querySelector('textarea, input')?.focus({ preventScroll: true });
+    highlight(id, false);
+  }
+
+  // ---------- saving ----------
+  function serialize() {
+    const clone = doc.documentElement.cloneNode(true);
+    clone.querySelectorAll('[data-eid]').forEach((e) => e.removeAttribute('data-eid'));
+    clone.querySelectorAll('.editing').forEach((e) => { e.classList.remove('editing'); if (!e.classList.length) e.removeAttribute('class'); });
+    return toHtml(clone);
+  }
+  // The parser moves whitespace after </body> into <body>, so settle it to one fixed run each save.
+  function toHtml(root) {
+    const body = root.querySelector('body');
+    while (body.lastChild && body.lastChild.nodeType === 3 && !body.lastChild.textContent.trim()) body.lastChild.remove();
+    body.appendChild(root.ownerDocument.createTextNode('\n  '));
+    return '<!doctype html>\n' + root.outerHTML + '\n';
+  }
+
+  window.__toHtml = toHtml;
+
+  function updateButtons() {
+    $('publish').disabled = !dirty.size;
+    $('discard').disabled = !dirty.size;
+  }
+
+  function setView(v) {
+    $('editor').dataset.view = v;
+    document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.view === v)));
+  }
+
+  // ---------- wiring ----------
+  function showConnect(msg = '') {
+    $('connect').hidden = false; $('editor').hidden = true; $('actions').hidden = true;
+    $('connect-err').textContent = msg;
+    setStatus('Not connected');
+    $('token').focus();
+  }
+  async function start() {
+    $('connect').hidden = true; $('editor').hidden = false; $('actions').hidden = false;
+    try { await load(); }
+    catch (e) { clearToken(); token = null; showConnect(e.message); }
+  }
+
+  $('connect-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    token = $('token').value.trim();
+    if (!token) return;
+    saveToken(token, $('remember').checked);
+    $('token').value = '';
+    start();
+  });
+  $('publish').addEventListener('click', publish);
+  $('discard').addEventListener('click', () => {
+    if (!confirm('Throw away all unpublished changes?')) return;
+    build(originalHtml);
+    setStatus('Changes discarded', 'ok');
+  });
+  $('disconnect').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (dirty.size && !confirm('You have unpublished changes. Disconnect anyway?')) return;
+    clearToken(); token = null; dirty.clear();
+    showConnect();
+  });
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setView(t.dataset.view)));
+  window.addEventListener('beforeunload', (e) => { if (dirty.size) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); publish(); }
+  });
+
+  token = readToken();
+  token ? start() : showConnect();
+})();
+</script>
+</body>
+</html>
