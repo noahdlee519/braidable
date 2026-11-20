@@ -97,7 +97,8 @@ a:focus-visible,
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--orange);
+  background: var(--paper);
+  border-bottom: 1px solid #ececec;
 }
 .top-row {
   display: flex;
@@ -108,12 +109,11 @@ a:focus-visible,
 .mark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: var(--paper);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-decoration: none;
+}
+.mark img {
+  display: block;
+  width: auto;
+  height: 36px;
 }
 .mark-icon {
   width: 28px;
@@ -130,7 +130,7 @@ a:focus-visible,
   font-size: 16px;
 }
 .nav a:not(.btn) {
-  color: var(--paper);
+  color: var(--ink);
   text-decoration: none;
 }
 .nav a:not(.btn):hover {
@@ -158,6 +158,12 @@ a:focus-visible,
 .btn-small {
   padding: 8px 18px;
   font-size: 15px;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+.btn-small:hover {
+  background: var(--ink);
+  border-color: var(--ink);
 }
 .btn-quiet {
   background: transparent;
@@ -369,6 +375,9 @@ a:focus-visible,
   }
 }
 @media (max-width: 640px) {
+  .mark img {
+    height: 28px;
+  }
   body {
     font-size: 17px;
   }
