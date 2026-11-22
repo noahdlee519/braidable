@@ -65,7 +65,10 @@ html, body {
 /* Then the words pop in: a quick scale up with a slight overshoot. */
 .sweep .pop { transform-box: fill-box; transform-origin: center; animation: pop 520ms cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: var(--delay, 0ms); }
 @keyframes pop { from { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .sweep .arm, .sweep .pop { animation: none; } }
+/* The stripes inside the logo's pill keep flowing toward the top-right, one repeat at a time. */
+.pill-flow { animation: pill-flow 1.1s linear infinite; }
+@keyframes pill-flow { from { transform: translateX(calc(-1 * var(--tw))); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .sweep .arm, .sweep .pop, .pill-flow { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -158,12 +161,13 @@ document.documentElement.classList.add('js');
     const brandW = textW + 2 * pad;
     g.fs2 = Math.max(12, Math.min(0.22 * P, (0.5 * brandW - 2 * pad) * 100 / m.statusW));
     const len = m.statusW * g.fs2 / 100, cap = m.statusCap * g.fs2 / 100;
-    // The strip is half the band's height (its upper row only), and the words are centred in it.
-    const L = -pad, y = P;
-    const j = Math.ceil((len + pad - g.a - g.dx / 2) / g.A);
-    const xj = j * g.A;
-    g.strip = [[L, y], [xj + g.a, y], [xj + g.a + g.dx, y + g.h], [L, y + g.h]];
-    g.statusX = (L + xj + g.a + g.dx / 2) / 2 - len / 2;
+    // The strip is half the band's height (its upper row only). Its right end lines up with the
+    // bottom-right corner of the braidable.ai box; its left end follows the outline of a pattern piece.
+    const R = textW + pad, y = P;
+    const i = Math.floor((R - len - 2 * pad - g.dx / 2) / g.A);
+    const xi = i * g.A;
+    g.strip = [[xi, y], [R, y], [R, y + g.h], [xi + g.dx, y + g.h]];
+    g.statusX = (xi + g.dx / 2 + R) / 2 - len / 2;
     g.statusY = y + g.h / 2 + cap / 2;
 
     // Centre both rectangles on screen.
@@ -256,12 +260,21 @@ document.documentElement.classList.add('js');
     const ph = (p.top - p.bottom) * k, py = g.baseline - p.top * k;
     // Measured from the logo: white bars 15 wide on a 48 repeat, 60 tall inside the ring. The lower row
     // sits one bar-width to the right of the upper row, with a thin blue line between the two rows.
-    const ring = ph * 0.075, ih = ph - 2 * ring, tw = ih * 48 / 60;
-    const tile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: f(px + ring + tw * 0.3), y: f(py + ring), width: f(tw), height: f(ih) }, defs);
-    el('rect', { width: f(tw), height: f(ih), fill: BLUE }, tile);
-    el('path', { d: 'M0 0H15L39.5 28H24.5ZM40.7 32H55.7L30 60H16ZM-7.3 32H7.7L-18 60H-32Z', fill: WHITE, transform: `scale(${f(ih / 60)})` }, tile);
+    // The stripes slide continuously along the pill (up and to the right on screen), clipped by its ring.
+    const ring = ph * 0.075, ih = ph - 2 * ring, tw = ih * 48 / 60, sc = ih / 60;
+    const ix = px + ring, iy = py + ring, iw = pw - 2 * ring;
+    const clip = el('clipPath', { id: 'pill-clip' }, defs);
+    el('rect', { x: f(ix), y: f(iy), width: f(iw), height: f(ih), rx: f(ih / 2) }, clip);
     el('rect', { x: f(px), y: f(py), width: f(pw), height: f(ph), rx: f(ph / 2), fill: BLUE }, pillG);
-    el('rect', { x: f(px + ring), y: f(py + ring), width: f(pw - 2 * ring), height: f(ih), rx: f(ih / 2), fill: 'url(#pill)' }, pillG);
+    const inner = el('g', { 'clip-path': 'url(#pill-clip)' }, pillG);
+    const bars = [[[0, 0], [15, 0], [39.5, 28], [24.5, 28]], [[40.7, 32], [55.7, 32], [30, 60], [16, 60]], [[-7.3, 32], [7.7, 32], [-18, 60], [-32, 60]]];
+    let sd = '';
+    for (let n = -2; n * tw < iw + tw; n++) {
+      const x0 = ix + tw * 0.3 + n * tw;
+      for (const bar of bars) sd += poly(bar.map(([bx, by]) => [x0 + bx * sc, iy + by * sc]));
+    }
+    const flow = el('path', { d: sd, fill: WHITE, class: 'pill-flow' }, inner);
+    flow.style.setProperty('--tw', f(tw) + 'px');
 
     // site under construction
     el('path', { d: poly(st), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, statusG);
