@@ -142,7 +142,7 @@ document.documentElement.classList.add('js');
     g.a = 0.40 * P;            // blue part of each repeat
     g.s = g.A - g.a;           // the lower row sits one gap to the right of the upper row
     g.h = g.W / 2;
-    g.dx = 0.9 * g.h;          // bars lean a little steeper than 45°
+    g.dx = g.h;                // 45°: on screen the arms run exactly horizontal and vertical
 
     // braidable.ai on a white rectangle over band 0.
     g.k = (0.8 * g.W) / m.inkTop;
@@ -158,11 +158,13 @@ document.documentElement.classList.add('js');
     const brandW = textW + 2 * pad;
     g.fs2 = Math.max(12, Math.min(0.22 * P, (0.5 * brandW - 2 * pad) * 100 / m.statusW));
     const len = m.statusW * g.fs2 / 100, cap = m.statusCap * g.fs2 / 100;
-    const j = Math.ceil((len + 0.6 * pad - g.a) / g.A);
-    const xj = j * g.A, L = -pad, y = P;
-    g.strip = [[L, y], [xj + g.a, y], [xj + g.a + g.dx, y + g.h], [xj + g.s + g.dx + g.a, y + g.h], [xj + g.s + g.a, y + g.W], [L, y + g.W]];
-    g.statusX = 0;
-    g.statusY = P + g.h + cap / 2;
+    // The strip is half the band's height (its upper row only), and the words are centred in it.
+    const L = -pad, y = P;
+    const j = Math.ceil((len + pad - g.a - g.dx / 2) / g.A);
+    const xj = j * g.A;
+    g.strip = [[L, y], [xj + g.a, y], [xj + g.a + g.dx, y + g.h], [L, y + g.h]];
+    g.statusX = (L + xj + g.a + g.dx / 2) / 2 - len / 2;
+    g.statusY = y + g.h / 2 + cap / 2;
 
     // Centre both rectangles on screen.
     const r1 = g.brandRect;
@@ -234,7 +236,7 @@ document.documentElement.classList.add('js');
 
     // The words sit on top of the pattern and pop in once it has finished: braidable.ai on its white
     // box, then the logo's pill, then site under construction on its blue strip.
-    const popAt = SWEEP_MS + step / 2 + 520;
+    const popAt = 0.7 * SWEEP_MS + 250;   // as the sweep's last columns settle
     const group = (delay) => {
       const grp = el('g', { class: 'pop' }, sheet);
       if (motion) grp.style.setProperty('--delay', Math.round(popAt + delay) + 'ms');
