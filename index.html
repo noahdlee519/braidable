@@ -32,7 +32,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #2a44d6;
+  background: #ffffff;
 }
 #art {
   position: fixed;
@@ -54,6 +54,10 @@ html, body {
 }
 .fallback h1 { margin: 0; font-size: 48px; font-weight: 700; }
 .fallback p { margin: 0; font-size: 20px; }
+/* The pattern sweeps in column by column, from the bottom-left corner to the top-right. */
+.sweep .col { animation: sweep 650ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: var(--delay, 0ms); }
+@keyframes sweep { from { opacity: 0; transform: translateX(var(--shift, -30px)); } }
+@media (prefers-reduced-motion: reduce) { .sweep .col { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -71,11 +75,13 @@ document.documentElement.classList.add('js');
 (() => {
   const BLUE = '#2a44d6', WHITE = '#ffffff';
   const BRAND = 'braıdable.ai';  // dotless ı under the pill, as in the logo
-  const STATUS = ['site under', 'construction'];
+  const STATUS = 'site under construction';
   const MARGIN = 20;
+  const SWEEP_MS = 1500;
   const svg = document.getElementById('art');
   const NS = 'http://www.w3.org/2000/svg';
   const ctx = document.createElement('canvas').getContext('2d');
+  let first = true;
 
   const el = (name, attrs, parent) => {
     const n = document.createElementNS(NS, name);
@@ -83,125 +89,146 @@ document.documentElement.classList.add('js');
     if (parent) parent.appendChild(n);
     return n;
   };
-  const pts = (list) => list.map(([x, y]) => `${+x.toFixed(2)},${+y.toFixed(2)}`).join(' ');
+  const f = (v) => +v.toFixed(2);
+  const poly = (list) => 'M' + list.map(([x, y]) => `${f(x)} ${f(y)}`).join('L') + 'Z';
 
-  // Ink measurements of the brand word in Sora Bold at 100px.
-  function brandMetrics() {
+  // Measurements in Sora at 100px. Widths and letter positions come from the SVG text itself
+  // (what will actually be drawn); ink overhangs come from the canvas.
+  function metrics() {
+    const probe = (weight, text) => {
+      const t = el('text', { 'font-family': 'Sora', 'font-weight': weight, 'font-size': 100, x: 0, y: 0 }, svg);
+      t.textContent = text;
+      return t;
+    };
+    const tb = probe(700, BRAND);
+    const width = tb.getComputedTextLength();
+    const aStart = tb.getStartPositionOfChar(2).x, iStart = tb.getStartPositionOfChar(3).x;
+    const ts = probe(400, STATUS);
+    const statusW = ts.getComputedTextLength();
+    tb.remove(); ts.remove();
+
     ctx.font = '700 100px Sora';
-    const m = (s) => ctx.measureText(s);
+    const m = (t) => ctx.measureText(t);
     const asc = m('b').actualBoundingBoxAscent, xh = m('a').actualBoundingBoxAscent;
-    const aLeft = m('br').width - m('a').actualBoundingBoxLeft;
-    const iRight = m('bra').width + m('ı').actualBoundingBoxRight;
+    const aLeft = aStart - m('a').actualBoundingBoxLeft;
+    const iRight = iStart + m('\u0131').actualBoundingBoxRight;
+    const lastRight = width - m('i').width + m('i').actualBoundingBoxRight;
     // The pill sits over "aı" just as in the logo: a quarter of the ascender tall, a sliver above the x-height.
     const pillH = 0.26 * asc, pillBottom = xh + 0.045 * asc;
+    ctx.font = '400 100px Sora';
     return {
-      width: m(BRAND).width, asc,
+      width: Math.max(width, lastRight),
       pill: { left: aLeft + 0.07 * asc, right: iRight, bottom: pillBottom, top: pillBottom + pillH },
       inkTop: Math.max(asc, pillBottom + pillH),
+      statusW, statusCap: ctx.measureText('d').actualBoundingBoxAscent,
     };
   }
 
-  // Everything is drawn on a sheet turned 45°: bands run left to right on the sheet,
-  // which is up and to the right on screen, and their chevrons point the same way.
-  function build(P, vw, vh, bm) {
-    const T = 0.17 * P;        // white line between bands
-    const W = P - T;           // band
-    const A = 0.578 * P;       // chevron repeat along the band
-    const a = 0.395 * P;       // blue part of each repeat
-    const h = W / 2;           // how far the chevron's point sticks out
-    const chev = (x) => [[x, 0], [x + a, 0], [x + a + h, h], [x + a, W], [x, W], [x + h, h]];
+  // Everything is laid out on a sheet turned 45°: bands run left to right on the sheet,
+  // which is up and to the right on screen. Proportions measured from the mock-up.
+  function build(P, vw, vh, m) {
+    const g = { P };
+    g.T = 0.16 * P;            // white line between bands
+    g.W = P - g.T;             // band
+    g.A = 0.575 * P;           // repeat along the band
+    g.a = 0.40 * P;            // blue part of each repeat
+    g.s = g.A - g.a;           // the lower row sits one gap to the right of the upper row
+    g.h = g.W / 2;
+    g.dx = 0.9 * g.h;          // bars lean a little steeper than 45°
 
-    // "braidable.ai": a run of whole chevrons in band 0 turned white.
-    const s = (0.84 * W) / bm.inkTop;           // scale from the 100px measurements
-    const fs = 100 * s, textW = bm.width * s;
-    const n = Math.ceil((textW + 0.2 * P + h) / A);
-    const brandRegion = [[0, 0], [n * A, 0], [n * A + h, h], [n * A, W], [0, W], [h, h]];
-    const textX = (h + n * A) / 2 - textW / 2;
-    const baseline = h + (bm.inkTop * s) / 2;
+    // braidable.ai on a white rectangle over band 0.
+    g.k = (0.8 * g.W) / m.inkTop;
+    g.fs = 100 * g.k;
+    const textW = m.width * g.k, pad = 0.18 * g.W;
+    g.textX = 0;
+    g.baseline = g.h + (m.inkTop * g.k) / 2;
+    g.brandRect = { x: -pad, y: 0, w: textW + 2 * pad, h: g.W };
 
-    // "site under construction": two chevrons across the next two bands, gaps filled blue.
-    const xs = A, xe = 3 * A, y1 = P, y2 = 2 * P;
-    const statusRegion = [
-      [xs, y1], [xe, y1], [xe + h, y1 + h], [xe, y1 + W], [xe, y2], [xe + h, y2 + h], [xe, y2 + W],
-      [xs, y2 + W], [xs + h, y2 + h], [xs, y2], [xs, y1 + W], [xs + h, y1 + h],
-    ];
+    // site under construction: one line turned a quarter turn, on a blue strip straight below,
+    // lined up with the white rectangle's left edge and running down across whole bands.
+    g.fs2 = Math.max(12, 0.17 * P);
+    const len = m.statusW * g.fs2 / 100, cap = m.statusCap * g.fs2 / 100;
+    const bands = Math.ceil((len + 0.5 * g.fs2 * 2 + g.T) / P);
+    g.strip = { x: -pad, y: P, w: 2.1 * g.fs2, h: bands * P - g.T };
+    g.statusX = g.strip.x + g.strip.w / 2 - cap / 2;
+    g.statusY = g.strip.y + (g.strip.h - len) / 2;
 
-    // Centre the two regions on screen.
-    const all = brandRegion.concat(statusRegion);
-    const lx = all.map((p) => p[0]), ly = all.map((p) => p[1]);
-    const cx = (Math.min(...lx) + Math.max(...lx)) / 2, cy = (Math.min(...ly) + Math.max(...ly)) / 2;
+    // Centre both rectangles on screen.
+    const r1 = g.brandRect, r2 = g.strip;
+    const corners = [r1, r2].flatMap((r) => [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]]);
+    // Centre the bounding box as it appears on screen (after the 45° turn), then map that point back to the sheet.
     const c = Math.SQRT1_2;
-    const toScreen = ([x, y]) => [vw / 2 + ((x - cx) + (y - cy)) * c, vh / 2 + (-(x - cx) + (y - cy)) * c];
-    const sp = all.map(toScreen);
+    const us = corners.map(([x, y]) => (x + y) * c), vs = corners.map(([x, y]) => (y - x) * c);
+    const mu = (Math.min(...us) + Math.max(...us)) / 2, mv = (Math.min(...vs) + Math.max(...vs)) / 2;
+    g.cx = (mu - mv) * c;
+    g.cy = (mu + mv) * c;
+    const sp = corners.map(([x, y]) => [vw / 2 + ((x - g.cx) + (y - g.cy)) * c, vh / 2 + (-(x - g.cx) + (y - g.cy)) * c]);
     const sx = sp.map((p) => p[0]), sy = sp.map((p) => p[1]);
-    const overflow = Math.max(MARGIN - Math.min(...sx), Math.max(...sx) - (vw - MARGIN), MARGIN - Math.min(...sy), Math.max(...sy) - (vh - MARGIN));
-    const span = [Math.max(...sx) - Math.min(...sx), Math.max(...sy) - Math.min(...sy)];
-
-    return { P, T, W, A, a, h, chev, fs, s, textX, baseline, n, brandRegion, statusRegion, xs, xe, y1, y2, cx, cy, overflow, span };
+    g.overflow = Math.max(MARGIN - Math.min(...sx), Math.max(...sx) - (vw - MARGIN), MARGIN - Math.min(...sy), Math.max(...sy) - (vh - MARGIN));
+    g.span = [Math.max(...sx) - Math.min(...sx), Math.max(...sy) - Math.min(...sy)];
+    return g;
   }
 
   function draw() {
     const vw = innerWidth, vh = innerHeight;
-    const bm = brandMetrics();
+    svg.textContent = '';
+    const m = metrics();
     let P = Math.max(52, Math.min(130, vw * 0.21, vh * 0.13));
-    let g = build(P, vw, vh, bm);
+    let g = build(P, vw, vh, m);
     for (let i = 0; i < 6 && g.overflow > 0 && P > 24; i++) {
       P = Math.max(24, P * Math.min((vw - 2 * MARGIN) / g.span[0], (vh - 2 * MARGIN) / g.span[1], 0.97));
-      g = build(P, vw, vh, bm);
+      g = build(P, vw, vh, m);
     }
+    const motion = first && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    first = false;
 
     svg.textContent = '';
     svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    svg.classList.toggle('sweep', motion);
+    svg.style.setProperty('--shift', f(-0.35 * P) + 'px');
     const defs = el('defs', {}, svg);
+    const sheet = el('g', { transform: `translate(${vw / 2} ${vh / 2}) rotate(-45) translate(${f(-g.cx)} ${f(-g.cy)})` }, svg);
 
-    const sheet = el('g', { transform: `translate(${vw / 2} ${vh / 2}) rotate(-45) translate(${-g.cx} ${-g.cy})` }, svg);
-    const D = Math.hypot(vw, vh);
-    el('rect', { x: g.cx - D, y: g.cy - D, width: 2 * D, height: 2 * D, fill: WHITE }, sheet);
-
-    // The background: every chevron that lands on screen, as one shape so there are no seams.
-    let d = '';
-    const k0 = Math.floor((g.cy - D / 2) / g.P) - 1, k1 = Math.ceil((g.cy + D / 2) / g.P) + 1;
-    const i0 = Math.floor((g.cx - D / 2) / g.A) - 2, i1 = Math.ceil((g.cx + D / 2) / g.A) + 1;
-    for (let k = k0; k <= k1; k++) {
-      for (let i = i0; i <= i1; i++) {
-        const c = g.chev(i * g.A).map(([x, y]) => [x, y + k * g.P]);
-        d += 'M' + pts(c).replace(/ /g, 'L') + 'Z';
+    // The pattern, one path per column so it can sweep in from the bottom-left (the start of each band).
+    const D = Math.hypot(vw, vh) / 2 + P;
+    const k0 = Math.floor((g.cy - D) / P), k1 = Math.ceil((g.cy + D) / P);
+    const i0 = Math.floor((g.cx - D) / g.A) - 2, i1 = Math.ceil((g.cx + D) / g.A);
+    for (let i = i0; i <= i1; i++) {
+      const x = i * g.A;
+      let d = '';
+      for (let k = k0; k <= k1; k++) {
+        const y = k * P;
+        d += poly([[x, y], [x + g.a, y], [x + g.a + g.dx, y + g.h], [x + g.dx, y + g.h]]);
+        d += poly([[x + g.s + g.dx, y + g.h], [x + g.s + g.dx + g.a, y + g.h], [x + g.s + g.a, y + g.W], [x + g.s, y + g.W]]);
       }
+      const col = el('path', { d, fill: BLUE, class: 'col' }, sheet);
+      if (motion) col.style.setProperty('--delay', Math.round(((i - i0) / (i1 - i0)) * SWEEP_MS) + 'ms');
     }
-    el('path', { d, fill: BLUE }, sheet);
 
-    // A thin stroke in the same colour seals the edges where these meet the chevrons.
-    el('polygon', { points: pts(g.brandRegion), fill: WHITE, stroke: WHITE, 'stroke-width': 1 }, sheet);
-    el('polygon', { points: pts(g.statusRegion), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, sheet);
+    // The two rectangles sit on top of the pattern.
+    const b = g.brandRect, st = g.strip;
+    // A hairline stroke in the same colour hides the anti-aliased edges of the pattern underneath.
+    el('rect', { x: f(b.x), y: f(b.y), width: f(b.w), height: f(b.h), fill: WHITE, stroke: WHITE, 'stroke-width': 1.5 }, sheet);
+    el('rect', { x: f(st.x), y: f(st.y), width: f(st.w), height: f(st.h), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, sheet);
 
     // braidable.ai
-    const brand = el('text', { x: g.textX, y: g.baseline, fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': g.fs, 'letter-spacing': -0.01 * g.fs }, sheet);
+    const brand = el('text', { x: g.textX, y: f(g.baseline), fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': f(g.fs) }, sheet);
     brand.textContent = BRAND;
 
     // The logo's pill over "aı": blue, with white chevrons inside a blue ring.
-    const p = bm.pill, s = g.s;
-    const px = g.textX + p.left * s, pw = (p.right - p.left) * s;
-    const ph = (p.top - p.bottom) * s, py = g.baseline - p.top * s;
+    const p = m.pill, k = g.k;
+    const px = g.textX + p.left * k, pw = (p.right - p.left) * k;
+    const ph = (p.top - p.bottom) * k, py = g.baseline - p.top * k;
     const ring = ph * 0.1, ih = ph - 2 * ring;
-    const chevTile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: px + ring - ih * 0.2, y: py + ring, width: ih * 50 / 60, height: ih }, defs);
-    el('rect', { width: ih * 50 / 60, height: ih, fill: BLUE }, chevTile);
-    el('path', { d: 'M0 0H15L37 30H22ZM22 30H37L15 60H0Z', fill: WHITE, transform: `scale(${ih / 60})` }, chevTile);
-    el('rect', { x: px, y: py, width: pw, height: ph, rx: ph / 2, fill: BLUE }, sheet);
-    el('rect', { x: px + ring, y: py + ring, width: pw - 2 * ring, height: ih, rx: ih / 2, fill: 'url(#pill)' }, sheet);
+    const tile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: f(px + ring - ih * 0.2), y: f(py + ring), width: f(ih * 50 / 60), height: f(ih) }, defs);
+    el('rect', { width: f(ih * 50 / 60), height: f(ih), fill: BLUE }, tile);
+    el('path', { d: 'M0 0H15L37 30H22ZM22 30H37L15 60H0Z', fill: WHITE, transform: `scale(${f(ih / 60)})` }, tile);
+    el('rect', { x: f(px), y: f(py), width: f(pw), height: f(ph), rx: f(ph / 2), fill: BLUE }, sheet);
+    el('rect', { x: f(px + ring), y: f(py + ring), width: f(pw - 2 * ring), height: f(ih), rx: f(ih / 2), fill: 'url(#pill)' }, sheet);
 
-    // site under construction, turned a quarter turn so it runs across the bands.
-    const fs2 = Math.max(12, 0.21 * g.P), lh = 1.15 * fs2;
-    ctx.font = `400 ${fs2}px Sora`;
-    const longest = Math.max(...STATUS.map((t) => ctx.measureText(t).width));
-    const capH = ctx.measureText('d').actualBoundingBoxAscent;
-    const mid = (g.xs + g.h + g.xe) / 2;
-    const tx = mid + lh / 2 - capH / 2;
-    const ty = g.y1 + (g.P + g.W) / 2 - longest / 2;
-    const status = el('text', { transform: `translate(${tx} ${ty}) rotate(90)`, fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': fs2 }, sheet);
-    STATUS.forEach((line, i) => {
-      const t = el('tspan', { x: 0, y: i * lh }, status);
-      t.textContent = line;
-    });
+    // site under construction, on one line, turned a quarter turn.
+    const status = el('text', { transform: `translate(${f(g.statusX)} ${f(g.statusY)}) rotate(90)`, fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': f(g.fs2) }, sheet);
+    status.textContent = STATUS;
   }
 
   let timer;
