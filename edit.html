@@ -161,14 +161,14 @@ input:focus, textarea:focus { border-color: var(--blue); outline: none; box-shad
     <button class="tab" role="tab" aria-selected="false" data-view="preview">Preview</button>
   </div>
   <div class="fields" id="fields">
-    <p class="intro">Click any text in the preview to jump to it, or edit the fields below. Nothing goes live until you press <strong>Publish</strong>. · <a href="/" target="_blank" rel="noopener">View live site</a> · <a href="#" id="disconnect">Disconnect</a></p>
+    <p class="intro">Click any text in the preview to jump to it, or edit the fields below. Nothing goes live until you press <strong>Publish</strong>. · <a href="/site.html" target="_blank" rel="noopener">View full site</a> · <a href="#" id="disconnect">Disconnect</a></p>
   </div>
   <div class="preview"><iframe id="frame" title="Page preview"></iframe></div>
 </div>
 
 <script>
 (() => {
-  const OWNER = 'noahdlee519', REPO = 'braidable', BRANCH = 'main', FILE = 'index.html';
+  const OWNER = 'noahdlee519', REPO = 'braidable', BRANCH = 'main', FILE = 'site.html';
   const API = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE}`;
   const KEY = 'braidable-editor-token';
 
