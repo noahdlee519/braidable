@@ -54,10 +54,15 @@ html, body {
 }
 .fallback h1 { margin: 0; font-size: 48px; font-weight: 700; }
 .fallback p { margin: 0; font-size: 20px; }
-/* The pattern sweeps in column by column, from the bottom-left corner to the top-right. */
-.sweep .col { animation: sweep 650ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: var(--delay, 0ms); }
-@keyframes sweep { from { opacity: 0; transform: translateX(var(--shift, -30px)); } }
-@media (prefers-reduced-motion: reduce) { .sweep .col { animation: none; } }
+/* The pattern sweeps in from the bottom-left corner to the top-right.
+   Each piece is an arm running left or down from a 45° seam; the arms appear in turn, left then down,
+   so the pattern builds up like a braid being woven. */
+.sweep .arm { animation: 480ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: var(--delay, 0ms); }
+.sweep .left { animation-name: arm-left; }
+.sweep .down { animation-name: arm-down; }
+@keyframes arm-left { from { opacity: 0; transform: translate(var(--lx), var(--ly)); } }
+@keyframes arm-down { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+@media (prefers-reduced-motion: reduce) { .sweep .arm { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -77,7 +82,7 @@ document.documentElement.classList.add('js');
   const BRAND = 'braıdable.ai';  // dotless ı under the pill, as in the logo
   const STATUS = 'site under construction';
   const MARGIN = 20;
-  const SWEEP_MS = 1500;
+  const SWEEP_MS = 2400;   // time for the sweep to cross the screen
   const svg = document.getElementById('art');
   const NS = 'http://www.w3.org/2000/svg';
   const ctx = document.createElement('canvas').getContext('2d');
@@ -185,24 +190,40 @@ document.documentElement.classList.add('js');
     svg.textContent = '';
     svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
     svg.classList.toggle('sweep', motion);
-    svg.style.setProperty('--shift', f(-0.35 * P) + 'px');
+    // Each arm slides in a short way along its own direction: the left arms from the left, the down
+    // arms from below. On the turned sheet, screen-left is (-1,-1)/√2 and screen-down is (-1,1)/√2.
+    const nudge = 0.22 * P * Math.SQRT1_2;
+    svg.style.setProperty('--lx', f(-nudge) + 'px'); svg.style.setProperty('--ly', f(-nudge) + 'px');
+    svg.style.setProperty('--dx', f(-nudge) + 'px'); svg.style.setProperty('--dy', f(nudge) + 'px');
     const defs = el('defs', {}, svg);
     const sheet = el('g', { transform: `translate(${vw / 2} ${vh / 2}) rotate(-45) translate(${f(-g.cx)} ${f(-g.cy)})` }, svg);
 
-    // The pattern, one path per column so it can sweep in from the bottom-left (the start of each band).
+    // The pattern: for each column, one path of upper-row pieces (arms running left on screen) and one
+    // of lower-row pieces (arms running down). Delays follow the band direction, which on screen runs
+    // from the bottom-left corner to the top-right; within a column the left arm comes first, then the down arm.
     const D = Math.hypot(vw, vh) / 2 + P;
     const k0 = Math.floor((g.cy - D) / P), k1 = Math.ceil((g.cy + D) / P);
     const i0 = Math.floor((g.cx - D) / g.A) - 2, i1 = Math.ceil((g.cx + D) / g.A);
+    const reach = Math.SQRT1_2 * (vw + vh) / 2;          // how far the screen's corners lie along the band direction
+    const xFirst = g.cx - reach - g.A * 2, xLast = g.cx + reach;
+    const step = SWEEP_MS / ((xLast - xFirst) / g.A);     // time from one column to the next
     for (let i = i0; i <= i1; i++) {
       const x = i * g.A;
-      let d = '';
+      let up = '', down = '';
       for (let k = k0; k <= k1; k++) {
         const y = k * P;
-        d += poly([[x, y], [x + g.a, y], [x + g.a + g.dx, y + g.h], [x + g.dx, y + g.h]]);
-        d += poly([[x + g.s + g.dx, y + g.h], [x + g.s + g.dx + g.a, y + g.h], [x + g.s + g.a, y + g.W], [x + g.s, y + g.W]]);
+        up += poly([[x, y], [x + g.a, y], [x + g.a + g.dx, y + g.h], [x + g.dx, y + g.h]]);
+        // The down arm reaches a hair past the seam so the two arms meet without a visible line.
+        const o = 0.8, ox = o * g.dx / g.h;
+        down += poly([[x + g.s + g.dx + ox, y + g.h - o], [x + g.s + g.dx + g.a + ox, y + g.h - o], [x + g.s + g.a, y + g.W], [x + g.s, y + g.W]]);
       }
-      const col = el('path', { d, fill: BLUE, class: 'col' }, sheet);
-      if (motion) col.style.setProperty('--delay', Math.round(((i - i0) / (i1 - i0)) * SWEEP_MS) + 'ms');
+      const t = Math.max(0, ((x - xFirst) / g.A) * step);
+      const left = el('path', { d: up, fill: BLUE, class: 'arm left' }, sheet);
+      const dn = el('path', { d: down, fill: BLUE, class: 'arm down' }, sheet);
+      if (motion) {
+        left.style.setProperty('--delay', Math.round(t) + 'ms');
+        dn.style.setProperty('--delay', Math.round(t + step / 2) + 'ms');
+      }
     }
 
     // The two rectangles sit on top of the pattern.
