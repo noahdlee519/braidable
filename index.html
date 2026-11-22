@@ -3,242 +3,210 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>braidable · site under development</title>
-<meta name="description" content="braidable.ai is under development. Check back soon.">
+<title>braidable.ai · site under construction</title>
+<meta name="description" content="braidable.ai is under construction. Check back soon.">
 <link rel="canonical" href="https://braidable.ai/">
-<meta property="og:title" content="braidable">
-<meta property="og:description" content="Site under development.">
+<meta property="og:title" content="braidable.ai">
+<meta property="og:description" content="Site under construction.">
 <meta property="og:url" content="https://braidable.ai/">
 <meta property="og:image" content="https://braidable.ai/icon-512.png?v=2">
 <meta name="theme-color" content="#2a44d6">
 <link rel="icon" href="favicon.png?v=2" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <link rel="preload" href="fonts/sora-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/sora-400.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face {
   font-family: "Sora";
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url("fonts/sora-400.woff2") format("woff2");
 }
 @font-face {
   font-family: "Sora";
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url("fonts/sora-700.woff2") format("woff2");
 }
-:root {
-  --blue: #2a44d6;
-  --white: #ffffff;
-  --angle: -30deg;  /* the whole pattern rises up and to the right */
-  --ph: 40px;       /* pill height, set from the viewport in the script */
-}
-* { box-sizing: border-box; }
 html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--white);
+  background: #2a44d6;
 }
-body { font-family: "Sora", "Helvetica Neue", Helvetica, Arial, sans-serif; }
-
-/* One square sheet, bigger than the screen's diagonal, rotated about the screen's centre.
-   Everything on it (background pills and the words) shares the same angle. */
-.sheet {
+#art {
   position: fixed;
-  left: 50%;
-  top: 50%;
-  width: var(--d, 300vmax);
-  height: var(--d, 300vmax);
-  transform: translate(-50%, -50%) rotate(var(--angle));
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-
-/* The logo's pill: a blue ring around white chevrons, each made of two slanted bars meeting at the midline. */
-.pill {
-  position: absolute;
-  width: calc(var(--ph) * 4.25);
-  height: var(--ph);
-  border: calc(var(--ph) * 0.11) solid var(--blue);
-  border-radius: 999px;
-  background-color: var(--blue);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 60'%3E%3Cpath fill='%23fff' d='M0 0H15L37 30H22ZM22 30H37L15 60H0Z'/%3E%3C/svg%3E");
-  background-clip: padding-box;
-  background-origin: padding-box;
-  background-size: auto 100%;
-  background-repeat: repeat-x;
-  background-position: calc(var(--ph) * -0.18) 0;
-}
-
-.words {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: flex-start;
-  gap: calc(var(--ph) * 0.35);
-  margin: 0;
-  --size: clamp(46px, 13vmin, 150px);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: var(--bh, 150px);
-  margin: 0;
-  padding: 0 0.4em 0.06em;
-  border: calc(var(--ph) * 0.11) solid var(--blue);
-  border-radius: 999px;
-  background: var(--white);
-  color: var(--blue);
-  font-size: calc(var(--bh, 150px) * 0.64);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-}
-/* One pattern pill turned a quarter turn: same thickness, blue, carrying the words. */
-.status {
-  margin: 0;
-  padding: calc(var(--ph) * 0.75) 0;
-  border-radius: 999px;
-  background: var(--blue);
-  color: var(--white);
-  font-size: calc(var(--ph) * 0.46);
-  font-weight: 400;
-  line-height: var(--ph);
-  letter-spacing: 0.03em;
+/* Shown only if the script can't run; otherwise kept for screen readers. */
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  color: #ffffff;
+  font-family: "Sora", "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-align: center;
-  white-space: nowrap;
-  writing-mode: vertical-rl;
 }
-
-/* Cascade: pills appear in a wave from the bottom-left corner to the top-right. */
-.anim .pill { animation: pill-in 520ms cubic-bezier(.2, .7, .2, 1) both; animation-delay: var(--delay, 0ms); }
-.anim .brand { animation: word-in 600ms cubic-bezier(.2, .7, .2, 1) 1050ms both; }
-.anim .status { animation: word-in 600ms cubic-bezier(.2, .7, .2, 1) 1300ms both; }
-@keyframes pill-in {
-  from { opacity: 0; transform: translateX(calc(var(--ph) * -0.8)) scale(0.8); }
-}
-@keyframes word-in {
-  from { opacity: 0; transform: scale(0.9); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .anim .pill, .anim .brand, .anim .status { animation: none; }
+.fallback h1 { margin: 0; font-size: 48px; font-weight: 700; }
+.fallback p { margin: 0; font-size: 20px; }
+.js .fallback {
+  width: 1px; height: 1px; inset: auto; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
 }
 </style>
 </head>
 <body>
-<main class="sheet" id="sheet">
-  <div class="words" id="words">
-    <h1 class="brand" id="brand">braidable</h1>
-    <p class="status" id="status">site under development</p>
-  </div>
-</main>
+<div class="fallback">
+  <h1>braidable.ai</h1>
+  <p>site under construction</p>
+</div>
+<svg id="art" aria-hidden="true"></svg>
 <script>
+document.documentElement.classList.add('js');
 (() => {
-  const sheet = document.getElementById('sheet');
-  const words = document.getElementById('words');
-  const brand = document.getElementById('brand');
-  const RAD = -30 * Math.PI / 180;  // keep in step with --angle
-  const COS = Math.cos(RAD), SIN = Math.sin(RAD);
-  const MARGIN = 24;                // space kept between the words and the screen edge
-  const rootStyle = document.documentElement.style;
-  let first = true;
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('anim');
+  const BLUE = '#2a44d6', WHITE = '#ffffff';
+  const BRAND = 'braıdable.ai';  // dotless ı under the pill, as in the logo
+  const STATUS = ['site under', 'construction'];
+  const MARGIN = 20;
+  const svg = document.getElementById('art');
+  const NS = 'http://www.w3.org/2000/svg';
+  const ctx = document.createElement('canvas').getContext('2d');
 
-  // Size everything from the pill height, then snap the words onto the pill grid at the
-  // spot that centres them best on screen. Returns the grid and how much room the words take.
-  function place(ph, vw, vh) {
-    const g = { ph, pw: ph * 4.25, gap: Math.round(ph * 0.35) };
-    g.pitchX = g.pw + g.gap; g.pitchY = ph + g.gap; g.half = g.pitchX / 2;
-    g.d = Math.ceil(Math.hypot(vw, vh) + g.pw * 2);
-    const rows = vw < 700 ? 2 : 3;
-    rootStyle.setProperty('--ph', ph + 'px');
-    rootStyle.setProperty('--bh', (rows * ph + (rows - 1) * g.gap) + 'px');
-    sheet.style.setProperty('--d', g.d + 'px');
+  const el = (name, attrs, parent) => {
+    const n = document.createElementNS(NS, name);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const pts = (list) => list.map(([x, y]) => `${+x.toFixed(2)},${+y.toFixed(2)}`).join(' ');
 
-    brand.style.width = '';
-    brand.style.width = (Math.ceil((brand.offsetWidth + g.gap) / g.half) * g.half - g.gap) + 'px';
-
-    const toScreen = (x, y) => [vw / 2 + (x - g.d / 2) * COS - (y - g.d / 2) * SIN, vh / 2 + (x - g.d / 2) * SIN + (y - g.d / 2) * COS];
-    const parts = [...words.children].map((el) => [el.offsetLeft, el.offsetTop, el.offsetWidth, el.offsetHeight]);
-    const k0 = Math.round((g.d / 2 - words.offsetWidth / 2) / g.half);
-    const j0 = Math.round((g.d / 2 - words.offsetHeight / 2) / g.pitchY);
-    let best = Infinity;
-    for (let k = k0 - 3; k <= k0 + 3; k++) {
-      for (let j = j0 - 3; j <= j0 + 3; j++) {
-        const L = k * g.half, T = j * g.pitchY;
-        let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-        for (const [ol, ot, w, h] of parts) {
-          for (const [cx, cy] of [[ol, ot], [ol + w, ot], [ol, ot + h], [ol + w, ot + h]]) {
-            const [sx, sy] = toScreen(L + cx, T + cy);
-            x1 = Math.min(x1, sx); x2 = Math.max(x2, sx); y1 = Math.min(y1, sy); y2 = Math.max(y2, sy);
-          }
-        }
-        const err = Math.hypot((x1 + x2) / 2 - vw / 2, (y1 + y2) / 2 - vh / 2);
-        if (err < best) {
-          best = err; g.left = L; g.top = T;
-          g.overflow = Math.max(MARGIN - x1, x2 - (vw - MARGIN), MARGIN - y1, y2 - (vh - MARGIN));
-          g.w = x2 - x1; g.h = y2 - y1;
-        }
-      }
-    }
-    g.parts = parts;
-    g.toScreen = toScreen;
-    return g;
+  // Ink measurements of the brand word in Sora Bold at 100px.
+  function brandMetrics() {
+    ctx.font = '700 100px Sora';
+    const m = (s) => ctx.measureText(s);
+    const asc = m('b').actualBoundingBoxAscent, xh = m('a').actualBoundingBoxAscent;
+    const aLeft = m('br').width - m('a').actualBoundingBoxLeft;
+    const iRight = m('bra').width + m('ı').actualBoundingBoxRight;
+    // The pill sits over "aı" just as in the logo: a quarter of the ascender tall, a sliver above the x-height.
+    const pillH = 0.26 * asc, pillBottom = xh + 0.045 * asc;
+    return {
+      width: m(BRAND).width, asc,
+      pill: { left: aLeft + 0.07 * asc, right: iRight, bottom: pillBottom, top: pillBottom + pillH },
+      inkTop: Math.max(asc, pillBottom + pillH),
+    };
   }
 
-  function layout() {
+  // Everything is drawn on a sheet turned 45°: bands run left to right on the sheet,
+  // which is up and to the right on screen, and their chevrons point the same way.
+  function build(P, vw, vh, bm) {
+    const T = 0.17 * P;        // white line between bands
+    const W = P - T;           // band
+    const A = 0.578 * P;       // chevron repeat along the band
+    const a = 0.395 * P;       // blue part of each repeat
+    const h = W / 2;           // how far the chevron's point sticks out
+    const chev = (x) => [[x, 0], [x + a, 0], [x + a + h, h], [x + a, W], [x, W], [x + h, h]];
+
+    // "braidable.ai": a run of whole chevrons in band 0 turned white.
+    const s = (0.84 * W) / bm.inkTop;           // scale from the 100px measurements
+    const fs = 100 * s, textW = bm.width * s;
+    const n = Math.ceil((textW + 0.2 * P + h) / A);
+    const brandRegion = [[0, 0], [n * A, 0], [n * A + h, h], [n * A, W], [0, W], [h, h]];
+    const textX = (h + n * A) / 2 - textW / 2;
+    const baseline = h + (bm.inkTop * s) / 2;
+
+    // "site under construction": two chevrons across the next two bands, gaps filled blue.
+    const xs = A, xe = 3 * A, y1 = P, y2 = 2 * P;
+    const statusRegion = [
+      [xs, y1], [xe, y1], [xe + h, y1 + h], [xe, y1 + W], [xe, y2], [xe + h, y2 + h], [xe, y2 + W],
+      [xs, y2 + W], [xs + h, y2 + h], [xs, y2], [xs, y1 + W], [xs + h, y1 + h],
+    ];
+
+    // Centre the two regions on screen.
+    const all = brandRegion.concat(statusRegion);
+    const lx = all.map((p) => p[0]), ly = all.map((p) => p[1]);
+    const cx = (Math.min(...lx) + Math.max(...lx)) / 2, cy = (Math.min(...ly) + Math.max(...ly)) / 2;
+    const c = Math.SQRT1_2;
+    const toScreen = ([x, y]) => [vw / 2 + ((x - cx) + (y - cy)) * c, vh / 2 + (-(x - cx) + (y - cy)) * c];
+    const sp = all.map(toScreen);
+    const sx = sp.map((p) => p[0]), sy = sp.map((p) => p[1]);
+    const overflow = Math.max(MARGIN - Math.min(...sx), Math.max(...sx) - (vw - MARGIN), MARGIN - Math.min(...sy), Math.max(...sy) - (vh - MARGIN));
+    const span = [Math.max(...sx) - Math.min(...sx), Math.max(...sy) - Math.min(...sy)];
+
+    return { P, T, W, A, a, h, chev, fs, s, textX, baseline, n, brandRegion, statusRegion, xs, xe, y1, y2, cx, cy, overflow, span };
+  }
+
+  function draw() {
     const vw = innerWidth, vh = innerHeight;
-    let ph = Math.round(Math.min(46, Math.max(30, Math.min(vw, vh) * 0.045)));
-    let g = place(ph, vw, vh);
-    // Shrink until the words fit inside the screen with a margin.
-    for (let i = 0; i < 6 && g.overflow > 0 && ph > 16; i++) {
-      ph = Math.max(16, Math.floor(ph * Math.min((vw - 2 * MARGIN) / g.w, (vh - 2 * MARGIN) / g.h, 0.97)));
-      g = place(ph, vw, vh);
+    const bm = brandMetrics();
+    let P = Math.max(52, Math.min(130, vw * 0.21, vh * 0.13));
+    let g = build(P, vw, vh, bm);
+    for (let i = 0; i < 6 && g.overflow > 0 && P > 24; i++) {
+      P = Math.max(24, P * Math.min((vw - 2 * MARGIN) / g.span[0], (vh - 2 * MARGIN) / g.span[1], 0.97));
+      g = build(P, vw, vh, bm);
     }
 
-    words.style.transform = 'none';
-    words.style.left = g.left + 'px';
-    words.style.top = g.top + 'px';
-    sheet.querySelectorAll('.pill').forEach((p) => p.remove());
+    svg.textContent = '';
+    svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    const defs = el('defs', {}, svg);
 
-    // Leave out the background pills that would run into the words.
-    const keepOut = g.parts.map(([ol, ot, w, h]) => ({
-      l: g.left + ol - g.gap / 2, t: g.top + ot - g.gap / 2,
-      r: g.left + ol + w + g.gap / 2, b: g.top + ot + h + g.gap / 2,
-    }));
-    const motion = first && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const frag = document.createDocumentFragment();
-    const rows = Math.ceil(g.d / g.pitchY) + 1, cols = Math.ceil(g.d / g.pitchX) + 2;
-    for (let r = 0; r < rows; r++) {
-      const y = r * g.pitchY;
-      const shift = (r % 2) * g.half - g.pitchX;
-      for (let c = 0; c < cols; c++) {
-        const x = shift + c * g.pitchX;
-        if (keepOut.some((k) => x < k.r && x + g.pw > k.l && y < k.b && y + g.ph > k.t)) continue;
-        const p = document.createElement('div');
-        p.className = 'pill';
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        if (motion) {
-          // Delay each pill by how far it is from the bottom-left corner of the screen.
-          const [sx, sy] = g.toScreen(x + g.pw / 2, y + g.ph / 2);
-          const t = Math.min(1, Math.max(0, (sx / vw + (1 - sy / vh)) / 2));
-          p.style.setProperty('--delay', Math.round(t * 1100) + 'ms');
-        }
-        frag.appendChild(p);
+    const sheet = el('g', { transform: `translate(${vw / 2} ${vh / 2}) rotate(-45) translate(${-g.cx} ${-g.cy})` }, svg);
+    const D = Math.hypot(vw, vh);
+    el('rect', { x: g.cx - D, y: g.cy - D, width: 2 * D, height: 2 * D, fill: WHITE }, sheet);
+
+    // The background: every chevron that lands on screen, as one shape so there are no seams.
+    let d = '';
+    const k0 = Math.floor((g.cy - D / 2) / g.P) - 1, k1 = Math.ceil((g.cy + D / 2) / g.P) + 1;
+    const i0 = Math.floor((g.cx - D / 2) / g.A) - 2, i1 = Math.ceil((g.cx + D / 2) / g.A) + 1;
+    for (let k = k0; k <= k1; k++) {
+      for (let i = i0; i <= i1; i++) {
+        const c = g.chev(i * g.A).map(([x, y]) => [x, y + k * g.P]);
+        d += 'M' + pts(c).replace(/ /g, 'L') + 'Z';
       }
     }
-    sheet.insertBefore(frag, words);
-    if (!motion) document.documentElement.classList.remove('anim');
-    first = false;
+    el('path', { d, fill: BLUE }, sheet);
+
+    // A thin stroke in the same colour seals the edges where these meet the chevrons.
+    el('polygon', { points: pts(g.brandRegion), fill: WHITE, stroke: WHITE, 'stroke-width': 1 }, sheet);
+    el('polygon', { points: pts(g.statusRegion), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, sheet);
+
+    // braidable.ai
+    const brand = el('text', { x: g.textX, y: g.baseline, fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': g.fs, 'letter-spacing': -0.01 * g.fs }, sheet);
+    brand.textContent = BRAND;
+
+    // The logo's pill over "aı": blue, with white chevrons inside a blue ring.
+    const p = bm.pill, s = g.s;
+    const px = g.textX + p.left * s, pw = (p.right - p.left) * s;
+    const ph = (p.top - p.bottom) * s, py = g.baseline - p.top * s;
+    const ring = ph * 0.1, ih = ph - 2 * ring;
+    const chevTile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: px + ring - ih * 0.2, y: py + ring, width: ih * 50 / 60, height: ih }, defs);
+    el('rect', { width: ih * 50 / 60, height: ih, fill: BLUE }, chevTile);
+    el('path', { d: 'M0 0H15L37 30H22ZM22 30H37L15 60H0Z', fill: WHITE, transform: `scale(${ih / 60})` }, chevTile);
+    el('rect', { x: px, y: py, width: pw, height: ph, rx: ph / 2, fill: BLUE }, sheet);
+    el('rect', { x: px + ring, y: py + ring, width: pw - 2 * ring, height: ih, rx: ih / 2, fill: 'url(#pill)' }, sheet);
+
+    // site under construction, turned a quarter turn so it runs across the bands.
+    const fs2 = Math.max(12, 0.21 * g.P), lh = 1.15 * fs2;
+    ctx.font = `400 ${fs2}px Sora`;
+    const longest = Math.max(...STATUS.map((t) => ctx.measureText(t).width));
+    const capH = ctx.measureText('d').actualBoundingBoxAscent;
+    const mid = (g.xs + g.h + g.xe) / 2;
+    const tx = mid + lh / 2 - capH / 2;
+    const ty = g.y1 + (g.P + g.W) / 2 - longest / 2;
+    const status = el('text', { transform: `translate(${tx} ${ty}) rotate(90)`, fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': fs2 }, sheet);
+    STATUS.forEach((line, i) => {
+      const t = el('tspan', { x: 0, y: i * lh }, status);
+      t.textContent = line;
+    });
   }
 
   let timer;
-  addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(layout, 120); });
-  (document.fonts ? document.fonts.ready : Promise.resolve()).then(layout);
+  addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(draw, 100); });
+  Promise.all([document.fonts.load('700 100px Sora'), document.fonts.load('400 20px Sora')]).then(draw, draw);
 })();
 </script>
 </body>
