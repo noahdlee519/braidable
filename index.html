@@ -62,7 +62,10 @@ html, body {
 .sweep .down { animation-name: arm-down; }
 @keyframes arm-left { from { opacity: 0; transform: translate(var(--lx), var(--ly)); } }
 @keyframes arm-down { from { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
-@media (prefers-reduced-motion: reduce) { .sweep .arm { animation: none; } }
+/* Then the words pop in: a quick scale up with a slight overshoot. */
+.sweep .pop { transform-box: fill-box; transform-origin: center; animation: pop 520ms cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: var(--delay, 0ms); }
+@keyframes pop { from { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sweep .arm, .sweep .pop { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -149,18 +152,21 @@ document.documentElement.classList.add('js');
     g.baseline = g.h + (m.inkTop * g.k) / 2;
     g.brandRect = { x: -pad, y: 0, w: textW + 2 * pad, h: g.W };
 
-    // site under construction: one line turned a quarter turn, on a blue strip straight below,
-    // lined up with the white rectangle's left edge and running down across whole bands.
-    g.fs2 = Math.max(12, 0.17 * P);
+    // site under construction: on the band straight below, reading the same way as braidable.ai.
+    // Its blue strip starts at the same left edge and takes over only the leftmost sections of that band:
+    // the right end follows the outline of a pattern section, so it merges with it instead of slicing one.
+    const brandW = textW + 2 * pad;
+    g.fs2 = Math.max(12, Math.min(0.22 * P, (0.5 * brandW - 2 * pad) * 100 / m.statusW));
     const len = m.statusW * g.fs2 / 100, cap = m.statusCap * g.fs2 / 100;
-    const bands = Math.ceil((len + 0.5 * g.fs2 * 2 + g.T) / P);
-    g.strip = { x: -pad, y: P, w: 2.1 * g.fs2, h: bands * P - g.T };
-    g.statusX = g.strip.x + g.strip.w / 2 - cap / 2;
-    g.statusY = g.strip.y + (g.strip.h - len) / 2;
+    const j = Math.ceil((len + 0.6 * pad - g.a) / g.A);
+    const xj = j * g.A, L = -pad, y = P;
+    g.strip = [[L, y], [xj + g.a, y], [xj + g.a + g.dx, y + g.h], [xj + g.s + g.dx + g.a, y + g.h], [xj + g.s + g.a, y + g.W], [L, y + g.W]];
+    g.statusX = 0;
+    g.statusY = P + g.h + cap / 2;
 
     // Centre both rectangles on screen.
-    const r1 = g.brandRect, r2 = g.strip;
-    const corners = [r1, r2].flatMap((r) => [[r.x, r.y], [r.x + r.w, r.y], [r.x, r.y + r.h], [r.x + r.w, r.y + r.h]]);
+    const r1 = g.brandRect;
+    const corners = [[r1.x, r1.y], [r1.x + r1.w, r1.y], [r1.x, r1.y + r1.h], [r1.x + r1.w, r1.y + r1.h]].concat(g.strip);
     // Centre the bounding box as it appears on screen (after the 45° turn), then map that point back to the sheet.
     const c = Math.SQRT1_2;
     const us = corners.map(([x, y]) => (x + y) * c), vs = corners.map(([x, y]) => (y - x) * c);
@@ -226,29 +232,38 @@ document.documentElement.classList.add('js');
       }
     }
 
-    // The two rectangles sit on top of the pattern.
+    // The words sit on top of the pattern and pop in once it has finished: braidable.ai on its white
+    // box, then the logo's pill, then site under construction on its blue strip.
+    const popAt = SWEEP_MS + step / 2 + 520;
+    const group = (delay) => {
+      const grp = el('g', { class: 'pop' }, sheet);
+      if (motion) grp.style.setProperty('--delay', Math.round(popAt + delay) + 'ms');
+      return grp;
+    };
     const b = g.brandRect, st = g.strip;
-    // A hairline stroke in the same colour hides the anti-aliased edges of the pattern underneath.
-    el('rect', { x: f(b.x), y: f(b.y), width: f(b.w), height: f(b.h), fill: WHITE, stroke: WHITE, 'stroke-width': 1.5 }, sheet);
-    el('rect', { x: f(st.x), y: f(st.y), width: f(st.w), height: f(st.h), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, sheet);
+    const brandG = group(0), pillG = group(220), statusG = group(380);
 
-    // braidable.ai
-    const brand = el('text', { x: g.textX, y: f(g.baseline), fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': f(g.fs) }, sheet);
+    // A hairline stroke in the same colour hides the anti-aliased edges of the pattern underneath.
+    el('rect', { x: f(b.x), y: f(b.y), width: f(b.w), height: f(b.h), fill: WHITE, stroke: WHITE, 'stroke-width': 1.5 }, brandG);
+    const brand = el('text', { x: g.textX, y: f(g.baseline), fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': f(g.fs) }, brandG);
     brand.textContent = BRAND;
 
     // The logo's pill over "aı": blue, with white chevrons inside a blue ring.
     const p = m.pill, k = g.k;
     const px = g.textX + p.left * k, pw = (p.right - p.left) * k;
     const ph = (p.top - p.bottom) * k, py = g.baseline - p.top * k;
-    const ring = ph * 0.1, ih = ph - 2 * ring;
-    const tile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: f(px + ring - ih * 0.2), y: f(py + ring), width: f(ih * 50 / 60), height: f(ih) }, defs);
-    el('rect', { width: f(ih * 50 / 60), height: f(ih), fill: BLUE }, tile);
-    el('path', { d: 'M0 0H15L37 30H22ZM22 30H37L15 60H0Z', fill: WHITE, transform: `scale(${f(ih / 60)})` }, tile);
-    el('rect', { x: f(px), y: f(py), width: f(pw), height: f(ph), rx: f(ph / 2), fill: BLUE }, sheet);
-    el('rect', { x: f(px + ring), y: f(py + ring), width: f(pw - 2 * ring), height: f(ih), rx: f(ih / 2), fill: 'url(#pill)' }, sheet);
+    // Measured from the logo: white bars 15 wide on a 48 repeat, 60 tall inside the ring. The lower row
+    // sits one bar-width to the right of the upper row, with a thin blue line between the two rows.
+    const ring = ph * 0.075, ih = ph - 2 * ring, tw = ih * 48 / 60;
+    const tile = el('pattern', { id: 'pill', patternUnits: 'userSpaceOnUse', x: f(px + ring + tw * 0.3), y: f(py + ring), width: f(tw), height: f(ih) }, defs);
+    el('rect', { width: f(tw), height: f(ih), fill: BLUE }, tile);
+    el('path', { d: 'M0 0H15L39.5 28H24.5ZM40.7 32H55.7L30 60H16ZM-7.3 32H7.7L-18 60H-32Z', fill: WHITE, transform: `scale(${f(ih / 60)})` }, tile);
+    el('rect', { x: f(px), y: f(py), width: f(pw), height: f(ph), rx: f(ph / 2), fill: BLUE }, pillG);
+    el('rect', { x: f(px + ring), y: f(py + ring), width: f(pw - 2 * ring), height: f(ih), rx: f(ih / 2), fill: 'url(#pill)' }, pillG);
 
-    // site under construction, on one line, turned a quarter turn.
-    const status = el('text', { transform: `translate(${f(g.statusX)} ${f(g.statusY)}) rotate(90)`, fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': f(g.fs2) }, sheet);
+    // site under construction
+    el('path', { d: poly(st), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, statusG);
+    const status = el('text', { x: f(g.statusX), y: f(g.statusY), fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': f(g.fs2) }, statusG);
     status.textContent = STATUS;
   }
 
