@@ -69,6 +69,27 @@ html, body {
 .pill-flow { animation: pill-flow 1.1s linear infinite; }
 @keyframes pill-flow { from { transform: translateX(calc(-1 * var(--tw))); } to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .sweep .arm, .sweep .pop, .pill-flow { animation: none; } }
+/* Credit link: a small white box at the bottom, like the boxes behind the words. */
+.credit {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 7px 14px 8px;
+  background: #ffffff;
+  color: #2a44d6;
+  font-family: "Sora", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.credit:hover { text-decoration: underline; text-underline-offset: 3px; }
+.credit:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+.credit.pop-in { animation: credit-in 420ms cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: var(--delay, 0ms); }
+@keyframes credit-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+@media (prefers-reduced-motion: reduce) { .credit.pop-in { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -81,6 +102,7 @@ html, body {
   <p>site under construction</p>
 </div>
 <svg id="art" aria-hidden="true"></svg>
+<a class="credit" id="credit" href="https://noahdarwinlee.com">Noah Darwin Lee</a>
 <script>
 document.documentElement.classList.add('js');
 (() => {
@@ -88,6 +110,7 @@ document.documentElement.classList.add('js');
   const BRAND = 'braıdable.ai';  // dotless ı under the pill, as in the logo
   const STATUS = 'site under construction';
   const MARGIN = 20;
+  const BOTTOM = 64;        // room kept clear for the credit link
   const SWEEP_MS = 2400;   // time for the sweep to cross the screen
   const svg = document.getElementById('art');
   const NS = 'http://www.w3.org/2000/svg';
@@ -181,7 +204,7 @@ document.documentElement.classList.add('js');
     g.cy = (mu + mv) * c;
     const sp = corners.map(([x, y]) => [vw / 2 + ((x - g.cx) + (y - g.cy)) * c, vh / 2 + (-(x - g.cx) + (y - g.cy)) * c]);
     const sx = sp.map((p) => p[0]), sy = sp.map((p) => p[1]);
-    g.overflow = Math.max(MARGIN - Math.min(...sx), Math.max(...sx) - (vw - MARGIN), MARGIN - Math.min(...sy), Math.max(...sy) - (vh - MARGIN));
+    g.overflow = Math.max(MARGIN - Math.min(...sx), Math.max(...sx) - (vw - MARGIN), MARGIN - Math.min(...sy), Math.max(...sy) - (vh - BOTTOM));
     g.span = [Math.max(...sx) - Math.min(...sx), Math.max(...sy) - Math.min(...sy)];
     return g;
   }
@@ -280,6 +303,11 @@ document.documentElement.classList.add('js');
     el('path', { d: poly(st), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, statusG);
     const status = el('text', { x: f(g.statusX), y: f(g.statusY), fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': f(g.fs2) }, statusG);
     status.textContent = STATUS;
+
+    // The credit link pops in last.
+    const credit = document.getElementById('credit');
+    credit.classList.toggle('pop-in', motion);
+    if (motion) credit.style.setProperty('--delay', Math.round(popAt + 560) + 'ms');
   }
 
   let timer;
