@@ -163,33 +163,36 @@ document.documentElement.classList.add('js');
     const g = { P };
     g.T = 0.16 * P;            // white line between bands
     g.W = P - g.T;             // band
+    g.h = g.W / 2;             // each row of bars is half a band
     g.A = 0.575 * P;           // repeat along the band
-    g.a = 0.40 * P;            // blue part of each repeat
+    g.a = g.h;                 // blue part of each repeat: exactly half a band, so corners line up on the midline
     g.s = g.A - g.a;           // the lower row sits one gap to the right of the upper row
-    g.h = g.W / 2;
     g.dx = g.h;                // 45°: on screen the arms run exactly horizontal and vertical
 
-    // braidable.ai on a white rectangle over band 0.
+    // braidable.ai on a white box over band 0. The box's ends sit where a straight cut passes
+    // through pattern corners (a multiple of the repeat, plus half a band), so every piece it
+    // cuts ends in a clean point rather than a sliver.
     g.k = (0.8 * g.W) / m.inkTop;
     g.fs = 100 * g.k;
-    const textW = m.width * g.k, pad = 0.18 * g.W;
-    g.textX = 0;
+    const textW = m.width * g.k;
+    const n = Math.ceil((textW + 0.3 * g.W) / g.A);
+    const left = g.h, right = left + n * g.A;
+    // (It reaches a hair into the white lines above and below, so the band's edge leaves no faint line.)
+    g.brandRect = { x: left, y: -0.75, w: n * g.A, h: g.W + 1.5 };
+    g.textX = left + (n * g.A - textW) / 2;
     g.baseline = g.h + (m.inkTop * g.k) / 2;
-    g.brandRect = { x: -pad, y: 0, w: textW + 2 * pad, h: g.W };
 
-    // site under construction: on the band straight below, reading the same way as braidable.ai.
-    // Its blue strip starts at the same left edge and takes over only the leftmost sections of that band:
-    // the right end follows the outline of a pattern section, so it merges with it instead of slicing one.
-    const brandW = textW + 2 * pad;
-    g.fs2 = Math.max(12, Math.min(0.22 * P, (0.5 * brandW - 2 * pad) * 100 / m.statusW));
+    // site under construction, on the band straight below and reading the same way, on a blue strip
+    // half the band's height (its upper row only). Its right end lines up with the bottom-right corner
+    // of the braidable.ai box; its left end follows the outline of a pattern piece. Words centred.
+    const pad = 0.18 * g.W;
+    g.fs2 = Math.max(12, Math.min(0.22 * P, (0.5 * n * g.A - 2 * pad) * 100 / m.statusW));
     const len = m.statusW * g.fs2 / 100, cap = m.statusCap * g.fs2 / 100;
-    // The strip is half the band's height (its upper row only). Its right end lines up with the
-    // bottom-right corner of the braidable.ai box; its left end follows the outline of a pattern piece.
-    const R = textW + pad, y = P;
-    const i = Math.floor((R - len - 2 * pad - g.dx / 2) / g.A);
+    const y = P;
+    const i = Math.floor((right - len - 2 * pad - g.dx / 2) / g.A);
     const xi = i * g.A;
-    g.strip = [[xi, y], [R, y], [R, y + g.h], [xi + g.dx, y + g.h]];
-    g.statusX = (xi + g.dx / 2 + R) / 2 - len / 2;
+    g.strip = [[xi, y], [right, y], [right, y + g.h], [xi + g.dx, y + g.h]];
+    g.statusX = (xi + g.dx / 2 + right) / 2 - len / 2;
     g.statusY = y + g.h / 2 + cap / 2;
 
     // Centre both rectangles on screen.
@@ -271,8 +274,7 @@ document.documentElement.classList.add('js');
     const b = g.brandRect, st = g.strip;
     const brandG = group(0), pillG = group(220), statusG = group(380);
 
-    // A hairline stroke in the same colour hides the anti-aliased edges of the pattern underneath.
-    el('rect', { x: f(b.x), y: f(b.y), width: f(b.w), height: f(b.h), fill: WHITE, stroke: WHITE, 'stroke-width': 1.5 }, brandG);
+    el('rect', { x: f(b.x), y: f(b.y), width: f(b.w), height: f(b.h), fill: WHITE }, brandG);
     const brand = el('text', { x: g.textX, y: f(g.baseline), fill: BLUE, 'font-family': 'Sora', 'font-weight': 700, 'font-size': f(g.fs) }, brandG);
     brand.textContent = BRAND;
 
@@ -299,7 +301,7 @@ document.documentElement.classList.add('js');
     flow.style.setProperty('--tw', f(tw) + 'px');
 
     // site under construction
-    el('path', { d: poly(st), fill: BLUE, stroke: BLUE, 'stroke-width': 1 }, statusG);
+    el('path', { d: poly(st), fill: BLUE }, statusG);
     const status = el('text', { x: f(g.statusX), y: f(g.statusY), fill: WHITE, 'font-family': 'Sora', 'font-weight': 400, 'font-size': f(g.fs2) }, statusG);
     status.textContent = STATUS;
 
