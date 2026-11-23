@@ -72,9 +72,8 @@ html, body {
 /* Credit link: a small white box at the bottom, like the boxes behind the words. */
 .credit {
   position: fixed;
-  left: 50%;
+  right: 18px;
   bottom: 18px;
-  transform: translateX(-50%);
   padding: 7px 14px 8px;
   background: #ffffff;
   color: #2a44d6;
@@ -88,7 +87,7 @@ html, body {
 .credit:hover { text-decoration: underline; text-underline-offset: 3px; }
 .credit:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
 .credit.pop-in { animation: credit-in 420ms cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: var(--delay, 0ms); }
-@keyframes credit-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+@keyframes credit-in { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) { .credit.pop-in { animation: none; } }
 .js .fallback {
   width: 1px; height: 1px; inset: auto; overflow: hidden;
